@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المنصة العالمية للأعمال | ApexGlobal CMS</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    },
+                    fontFamily: {
+                        tajawal: ['Tajawal', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Firebase Compat SDKs (v10.8.0) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-color, #f8fafc);
+            color: var(--text-color, #0f172a);
+        }
+        
+        /* Edit Mode Styles */
+        .edit-mode [contenteditable="true"] {
+            outline: 2px dashed #6366f1 !important;
+            outline-offset: 4px;
+            border-radius: 6px;
+            background-color: rgba(99, 102, 241, 0.05);
+            transition: all 0.2s ease;
+        }
+        .edit-mode [contenteditable="true"]:focus {
+            outline: 2px solid #4f46e5 !important;
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+        
+        .cms-action-btn {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+        .edit-mode .cms-action-btn {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-300">
+
+    <!-- Floating Admin Control Bar -->
+    <div id="cms-control-dock" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-slate-900/90 text-white px-5 py-3 rounded-full shadow-2xl backdrop-blur-md border border-slate-700/50">
+        <div class="flex items-center gap-2 pl-3 border-l border-slate-700">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" id="status-indicator"></span>
+            <span class="text-xs font-bold tracking-wider text-slate-300 uppercase" id="status-text">متصل بالسحابة</span>
+        </div>
+
+        <button id="toggle-edit-btn" onclick="handleEditToggle()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg shadow-indigo-600/30">
+            <i class="fa-solid fa-pen-to-square"></i>
+            <span id="edit-btn-label">وضع التعديل</span>
+        </button>
+
+        <!-- Admin Control Toolbar (Visible during Edit Mode) -->
+        <div id="admin-tools" class="hidden flex items-center gap-2 border-r border-slate-700 pr-3">
+            <button onclick="openColorStudio()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 p-2.5 rounded-full text-sm transition" title="تخصيص الألوان والسمات">
+                <i class="fa-solid fa-palette"></i>
+            </button>
+            <button onclick="openNavEditor()" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 p-2.5 rounded-full text-sm transition" title="إدارة القوائم">
+                <i class="fa-solid fa-bars-staggered"></i>
+            </button>
+            <button onclick="openSectionBuilder()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 p-2.5 rounded-full text-sm transition" title="إضافة أقسام جديدة">
+                <i class="fa-solid fa-layer-group"></i>
+            </button>
+            <button onclick="saveSiteDataToFirebase()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg shadow-emerald-600/30 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>حفظ التعديلات</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Dynamic Header & Navigation -->
+    <header id="main-header" class="sticky top-0 z-40 glass-panel shadow-sm transition-colors duration-300">
+        <div class="container mx-auto px-6 py-4 flex items-center justify-between">
+            
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3">
+                <div id="brand-logo-icon" class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl font-black shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-cube"></i>
+                </div>
+                <div id="site-title-container">
+                    <h1 id="site-logo-text" class="text-2xl font-black tracking-tight text-slate-900 cursor-pointer" onclick="editLogoText()">ApexGlobal</h1>
+                </div>
+            </div>
+
+            <!-- Dynamic Navigation Links -->
+            <nav class="hidden md:flex items-center gap-8" id="nav-links-container">
+                <!-- Links rendered dynamically -->
+            </nav>
+
+            <!-- Header Action Button -->
+            <div class="flex items-center gap-3">
+                <a id="header-cta-btn" href="#contact" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition shadow-md shadow-indigo-200 inline-block">
+                    تواصل معنا
+                </a>
+                <button onclick="openNavEditor()" class="cms-action-btn bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-lg text-xs font-bold" title="تعديل القائمة">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dynamic Dynamic Content Canvas -->
+    <main id="app-canvas" class="flex-grow">
+        <!-- Sections will be rendered here from dynamic state -->
+    </main>
+
+    <!-- Footer Section -->
+    <footer id="main-footer" class="bg-slate-900 text-white py-12 border-t border-slate-800 transition-colors duration-300">
+        <div class="container mx-auto px-6 text-center">
+            <div id="footer-logo" class="text-2xl font-black text-indigo-400 mb-4">ApexGlobal</div>
+            <p id="footer-copyright" class="text-slate-400 text-sm">جميع الحقوق محفوظة © 2026 - جميع الأفكار قابلة للتطوير والتعديل المباشر.</p>
+        </div>
+    </footer>
+
+    <!-- Auth Password Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl text-center border border-slate-100">
+            <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h3 class="text-2xl font-black mb-2 text-slate-800">منطقة لوحة التحكم</h3>
+            <p class="text-sm text-slate-500 mb-6">أدخل كلمة المرور  للتعديل الشامل</p>
+            <input type="password" id="admin-pass-input" placeholder="••••" class="w-full px-4 py-3.5 border border-slate-200 rounded-2xl mb-4 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+            <div class="flex gap-3">
+                <button onclick="submitAdminAuth()" class="flex-1 bg-indigo-600 text-white py-3.5 rounded-2xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-100">تأكيد الدخول</button>
+                <button onclick="closeAuthModal()" class="flex-1 bg-slate-100 text-slate-600 py-3.5 rounded-2xl font-bold hover:bg-slate-200 transition">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Manager Modal -->
+    <div id="nav-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-bars-staggered text-indigo-600"></i>
+                    <span>إدارة القائمة الرئيسية</span>
+                </h3>
+                <button onclick="closeNavModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="flex-grow overflow-y-auto space-y-3 pl-1 mb-6" id="nav-items-editor-list">
+                <!-- Navigation items loaded here -->
+            </div>
+
+            <button onclick="addNewNavItem()" class="w-full py-3 border-2 border-dashed border-indigo-200 hover:border-indigo-500 text-indigo-600 rounded-xl font-bold transition mb-4 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>إضافة عنصر قائمة جديد</span>
+            </button>
+
+            <div class="flex gap-3">
+                <button onclick="applyNavChanges()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">تطبيق التغييرات</button>
+                <button onclick="closeNavModal()" class="bg-slate-100 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Studio Modal -->
+    <div id="color-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-palette text-amber-500"></i>
+                    <span>استوديو الألوان والتنسيق</span>
+                </h3>
+                <button onclick="closeColorModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="space-y-4 overflow-y-auto pl-1 mb-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">اللون الرئيسي للعلامة التجارية (Primary)</label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" id="color-primary" onchange="previewColors()" class="w-12 h-12 rounded-xl border border-slate-200 cursor-pointer">
+                        <span class="text-sm font-mono text-slate-500" id="hex-primary">#4f46e5</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">خلفية الموقع الرئيسية (Background)</label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" id="color-bg" onchange="previewColors()" class="w-12 h-12 rounded-xl border border-slate-200 cursor-pointer">
+                        <span class="text-sm font-mono text-slate-500" id="hex-bg">#f8fafc</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">لون النصوص الرئيسي (Text Color)</label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" id="color-text" onchange="previewColors()" class="w-12 h-12 rounded-xl border border-slate-200 cursor-pointer">
+                        <span class="text-sm font-mono text-slate-500" id="hex-text">#0f172a</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">لون خلفية الهيدر والبطاقات</label>
+                    <div class="flex items-center gap-3">
+                        <input type="color" id="color-card" onchange="previewColors()" class="w-12 h-12 rounded-xl border border-slate-200 cursor-pointer">
+                        <span class="text-sm font-mono text-slate-500" id="hex-card">#ffffff</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="saveColorTheme()" class="flex-1 bg-amber-500 text-white py-3 rounded-xl font-bold hover:bg-amber-600 transition">حفظ السمة</button>
+                <button onclick="resetColorsToDefault()" class="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-200 transition">افتراضي</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Builder Modal -->
+    <div id="section-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-xl shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group text-emerald-600"></i>
+                    <span>إضافة قسم جديد للموقع</span>
+                </h3>
+                <button onclick="closeSectionModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto mb-6 p-1">
+                <div onclick="addSectionType('hero')" class="p-5 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl cursor-pointer transition hover:shadow-lg group bg-slate-50">
+                    <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-indigo-600 group-hover:text-white transition">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 mb-1">قسم هيرو (رئيسي)</h4>
+                    <p class="text-xs text-slate-500">عنوان رئيسي، وصف، زر إجراء، وصورة بارزة.</p>
+                </div>
+
+                <div onclick="addSectionType('features')" class="p-5 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl cursor-pointer transition hover:shadow-lg group bg-slate-50">
+                    <div class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-emerald-600 group-hover:text-white transition">
+                        <i class="fa-solid fa-grid-2"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 mb-1">بطاقات الخدمات والمميزات</h4>
+                    <p class="text-xs text-slate-500">شبكة من 3 بطاقات مزودة بأيقونات قابلة للتعديل.</p>
+                </div>
+
+                <div onclick="addSectionType('cta')" class="p-5 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl cursor-pointer transition hover:shadow-lg group bg-slate-50">
+                    <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-amber-600 group-hover:text-white transition">
+                        <i class="fa-solid fa-bullhorn"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 mb-1">بانر دعوة للتفاعل (CTA)</h4>
+                    <p class="text-xs text-slate-500">قسم لجذب الانتباه مع خلفية ملونة وزر سريع.</p>
+                </div>
+
+                <div onclick="addSectionType('text')" class="p-5 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl cursor-pointer transition hover:shadow-lg group bg-slate-50">
+                    <div class="w-10 h-10 bg-cyan-100 text-cyan-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-cyan-600 group-hover:text-white transition">
+                        <i class="fa-solid fa-paragraph"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 mb-1">كتلة نصية احترافية</h4>
+                    <p class="text-xs text-slate-500">مساحة لكتابة مقال أو معلومات تفصيلية عن الشركة.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- FIREBASE CONFIGURATION & INITIALIZATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDZD6ldH1nTghRrgLgVFGPVWtvqQ6kqecY",
+            authDomain: "land-page-f4cf9.firebaseapp.com",
+            databaseURL: "https://land-page-f4cf9-default-rtdb.firebaseio.com",
+            projectId: "land-page-f4cf9",
+            storageBucket: "land-page-f4cf9.firebasestorage.app",
+            messagingSenderId: "640421722618",
+            appId: "1:640421722618:web:92cee548e664ee5480cc43",
+            measurementId: "G-3WC05ERHRH"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // --- GLOBAL APP STATE ---
+        const ADMIN_PASSWORD = "1090";
+        let isEditMode = false;
+
+        let siteState = {
+            logoText: "ApexGlobal",
+            theme: {
+                primary: "#4f46e5",
+                bg: "#f8fafc",
+                text: "#0f172a",
+                card: "#ffffff"
+            },
+            navItems: [
+                { id: '1', title: 'الرئيسية', link: '#section-hero' },
+                { id: '2', title: 'المميزات', link: '#section-features' },
+                { id: '3', title: 'عن الشركة', link: '#section-about' }
+            ],
+            sections: [
+                {
+                    id: 'section-hero',
+                    type: 'hero',
+                    badge: '🚀 الحل الأول لشركات المستقبل',
+                    title: 'ارتقِ بأعمالك إلى آفاق رقمية جديدة',
+                    description: 'نوفر لك أحدث التقنيات والحلول المتكاملة لتعزيز نمو شركتك، زيادة مبيعاتك، وتقديم تجربة استثنائية لعملائك حول العالم.',
+                    buttonText: 'اكتشف المميزات',
+                    buttonLink: '#section-features',
+                    imageUrl: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=800&q=80'
+                },
+                {
+                    id: 'section-features',
+                    type: 'features',
+                    title: 'لماذا تختار شركتنا؟',
+                    subtitle: 'نتميز بتقديم خدمات احترافية تلبي تطلعاتك وتتفوق على توقعاتك.',
+                    cards: [
+                        { icon: 'fa-solid fa-bolt-lightning', title: 'أداء فائق السرعة', desc: 'بنية تحتية متطورة تضمن لك استجابة فورية وتجربة خالية من البطء.' },
+                        { icon: 'fa-solid fa-globe', title: 'حضور عالمي واسع', desc: 'نساعدك في الوصول إلى أسواق جديدة وعملاء مستهدفين بكل سهولة.' },
+                        { icon: 'fa-solid fa-shield-halved', title: 'أمان وحماية موثوقة', desc: 'أعلى معايير التشفير والأمان لحماية بياناتك وعملياتك الرقمية بشكل دائم.' }
+                    ]
+                },
+                {
+                    id: 'section-about',
+                    type: 'cta',
+                    title: 'هل أنت جاهز لبدء مشروعك القادم معنا؟',
+                    subtitle: 'فريقنا من الخبراء مستعد لمساعدتك في تحقيق أهدافك التجارية بأفضل جودة وأحدث المعايير.',
+                    buttonText: 'تواصل مع مستشارنا الآن',
+                    buttonLink: '#contact'
+                }
+            ]
+        };
+
+        // --- INIT & FIREBASE SYNC ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSiteDataFromFirebase();
+        });
+
+        function loadSiteDataFromFirebase() {
+            updateStatus('جاري التحميل...', 'amber');
+            db.collection("landing_pages").doc("advanced_cms").get()
+                .then((doc) => {
+                    if (doc.exists && doc.data().siteState) {
+                        siteState = doc.data().siteState;
+                        updateStatus('متصل بالسحابة', 'emerald');
+                    } else {
+                        updateStatus('وضع الافتراضي', 'emerald');
+                    }
+                    renderSite();
+                })
+                .catch((err) => {
+                    console.error("Firebase fetch error:", err);
+                    updateStatus('خطأ في الاتصال', 'rose');
+                    renderSite();
+                });
+        }
+
+        function saveSiteDataToFirebase() {
+            updateStatus('جاري الحفظ...', 'amber');
+            
+            // Extract latest editable texts from DOM into state before saving
+            syncDOMToState();
+
+            db.collection("landing_pages").doc("advanced_cms").set({
+                siteState: siteState,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                updateStatus('تم الحفظ بالسحابة', 'emerald');
+                showToast('✨ تم حفظ جميع التعديلات بنجاح! متاحة الآن لكل الزوار.');
+            })
+            .catch((err) => {
+                console.error("Firebase save error:", err);
+                updateStatus('فشل الحفظ', 'rose');
+                showToast('❌ تعذر الحفظ! يرجى التأكد من ضبط القواعد Rules في Firebase.');
+            });
+        }
+
+        function updateStatus(text, color) {
+            const ind = document.getElementById('status-indicator');
+            const txt = document.getElementById('status-text');
+            txt.innerText = text;
+            ind.className = `w-3 h-3 rounded-full bg-${color}-500 ${color === 'amber' ? 'animate-ping' : 'animate-pulse'}`;
+        }
+
+        // --- RENDER FUNCTIONS ---
+        function renderSite() {
+            applyThemeColors();
+            renderHeader();
+            renderCanvas();
+        }
+
+        function applyThemeColors() {
+            const root = document.documentElement;
+            root.style.setProperty('--bg-color', siteState.theme.bg || '#f8fafc');
+            root.style.setProperty('--text-color', siteState.theme.text || '#0f172a');
+            
+            // Apply logo text
+            document.getElementById('site-logo-text').innerText = siteState.logoText;
+        }
+
+        function renderHeader() {
+            const container = document.getElementById('nav-links-container');
+            container.innerHTML = siteState.navItems.map(item => `
+                <a href="${item.link}" class="font-medium hover:text-indigo-600 transition" style="color: ${siteState.theme.text}">${item.title}</a>
+            `).join('');
+        }
+
+        function renderCanvas() {
+            const canvas = document.getElementById('app-canvas');
+            canvas.innerHTML = '';
+
+            siteState.sections.forEach((sec, index) => {
+                const secEl = document.createElement('section');
+                secEl.id = sec.id;
+                secEl.className = "relative py-16 lg:py-24 border-b border-slate-200/50 transition-all";
+                secEl.style.backgroundColor = (index % 2 === 1) ? 'rgba(255,255,255,0.4)' : 'transparent';
+
+                // Section Controls Toolbar for Edit Mode
+                const controlsHtml = `
+                    <div class="cms-action-btn absolute top-4 left-4 z-20 flex items-center gap-2 bg-slate-900 text-white p-1.5 rounded-xl shadow-lg border border-slate-700">
+                        <button onclick="moveSection(${index}, -1)" class="w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center text-xs" title="تحريك لأعلى"><i class="fa-solid fa-arrow-up"></i></button>
+                        <button onclick="moveSection(${index}, 1)" class="w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center text-xs" title="تحريك لأسفل"><i class="fa-solid fa-arrow-down"></i></button>
+                        <button onclick="deleteSection(${index})" class="w-8 h-8 rounded-lg bg-rose-600/80 hover:bg-rose-600 flex items-center justify-center text-xs" title="حذف القسم"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+
+                if (sec.type === 'hero') {
+                    secEl.innerHTML = controlsHtml + `
+                        <div class="container mx-auto px-6 flex flex-col lg:flex-row items-center justify-between gap-12">
+                            <div class="lg:w-1/2 text-center lg:text-right">
+                                <span class="sec-hero-badge inline-block bg-indigo-50 text-indigo-600 font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-indigo-100" contenteditable="${isEditMode}">${sec.badge}</span>
+                                <h2 class="sec-hero-title text-4xl lg:text-6xl font-black mb-6 leading-tight" contenteditable="${isEditMode}">${sec.title}</h2>
+                                <p class="sec-hero-desc text-lg text-slate-600 mb-8 leading-relaxed" contenteditable="${isEditMode}">${sec.description}</p>
+                                <div class="flex items-center gap-4 justify-center lg:justify-start">
+                                    <a href="${sec.buttonLink}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 transition inline-block">
+                                        <span class="sec-hero-btn" contenteditable="${isEditMode}">${sec.buttonText}</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="lg:w-1/2 w-full">
+                                <div class="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-100 group">
+                                    <img src="${sec.imageUrl}" class="w-full h-[420px] object-cover group-hover:scale-105 transition duration-500" id="img-${sec.id}">
+                                    <button onclick="changeSectionImage('${sec.id}')" class="cms-action-btn absolute bottom-4 left-4 bg-slate-900/80 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md">
+                                        <i class="fa-solid fa-image ml-1"></i> تغيير الصورة
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (sec.type === 'features') {
+                    const cardsHtml = sec.cards.map((c, idx) => `
+                        <div class="p-8 rounded-3xl border border-slate-200/80 hover:shadow-xl transition duration-300 relative" style="background-color: ${siteState.theme.card}">
+                            <div class="flex justify-between items-start mb-6">
+                                <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                                    <i class="${c.icon}" id="icon-${sec.id}-${idx}"></i>
+                                </div>
+                                <button onclick="changeCardIcon('${sec.id}', ${idx})" class="cms-action-btn bg-slate-100 text-slate-700 p-2 rounded-lg text-xs" title="تغيير الأيقونة">
+                                    <i class="fa-solid fa-icons"></i>
+                                </button>
+                            </div>
+                            <h4 class="card-title text-xl font-bold mb-3" contenteditable="${isEditMode}">${c.title}</h4>
+                            <p class="card-desc text-slate-600 leading-relaxed text-sm" contenteditable="${isEditMode}">${c.desc}</p>
+                        </div>
+                    `).join('');
+
+                    secEl.innerHTML = controlsHtml + `
+                        <div class="container mx-auto px-6 text-center">
+                            <h3 class="sec-feat-title text-3xl lg:text-4xl font-black mb-4" contenteditable="${isEditMode}">${sec.title}</h3>
+                            <p class="sec-feat-sub text-slate-500 mb-16 max-w-xl mx-auto text-lg" contenteditable="${isEditMode}">${sec.subtitle}</p>
+                            <div class="grid md:grid-cols-3 gap-8 text-right">
+                                ${cardsHtml}
+                            </div>
+                        </div>
+                    `;
+                } else if (sec.type === 'cta') {
+                    secEl.innerHTML = controlsHtml + `
+                        <div class="container mx-auto px-6">
+                            <div class="p-12 rounded-3xl bg-gradient-to-r from-indigo-900 to-slate-900 text-white text-center shadow-2xl relative overflow-hidden">
+                                <h3 class="sec-cta-title text-3xl lg:text-4xl font-black mb-4 relative z-10" contenteditable="${isEditMode}">${sec.title}</h3>
+                                <p class="sec-cta-sub text-indigo-200 mb-8 max-w-2xl mx-auto text-lg relative z-10" contenteditable="${isEditMode}">${sec.subtitle}</p>
+                                <a href="${sec.buttonLink}" class="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-4 rounded-2xl font-bold shadow-lg transition inline-block relative z-10">
+                                    <span class="sec-cta-btn" contenteditable="${isEditMode}">${sec.buttonText}</span>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                } else if (sec.type === 'text') {
+                    secEl.innerHTML = controlsHtml + `
+                        <div class="container mx-auto px-6 max-w-4xl text-right">
+                            <h3 class="sec-text-title text-3xl font-black mb-6" contenteditable="${isEditMode}">${sec.title}</h3>
+                            <div class="sec-text-body text-slate-600 leading-relaxed space-y-4 text-lg" contenteditable="${isEditMode}">${sec.body}</div>
+                        </div>
+                    `;
+                }
+
+                canvas.appendChild(secEl);
+            });
+        }
+
+        // Sync DOM Editable changes to Javascript State Variable
+        function syncDOMToState() {
+            const canvas = document.getElementById('app-canvas');
+            const sections = canvas.querySelectorAll('section');
+
+            sections.forEach((secEl, index) => {
+                const secState = siteState.sections[index];
+                if (!secState) return;
+
+                if (secState.type === 'hero') {
+                    secState.badge = secEl.querySelector('.sec-hero-badge')?.innerText || secState.badge;
+                    secState.title = secEl.querySelector('.sec-hero-title')?.innerText || secState.title;
+                    secState.description = secEl.querySelector('.sec-hero-desc')?.innerText || secState.description;
+                    secState.buttonText = secEl.querySelector('.sec-hero-btn')?.innerText || secState.buttonText;
+                } else if (secState.type === 'features') {
+                    secState.title = secEl.querySelector('.sec-feat-title')?.innerText || secState.title;
+                    secState.subtitle = secEl.querySelector('.sec-feat-sub')?.innerText || secState.subtitle;
+                    
+                    const cardTitles = secEl.querySelectorAll('.card-title');
+                    const cardDescs = secEl.querySelectorAll('.card-desc');
+                    cardTitles.forEach((tEl, i) => {
+                        if (secState.cards[i]) {
+                            secState.cards[i].title = tEl.innerText;
+                            secState.cards[i].desc = cardDescs[i]?.innerText || secState.cards[i].desc;
+                        }
+                    });
+                } else if (secState.type === 'cta') {
+                    secState.title = secEl.querySelector('.sec-cta-title')?.innerText || secState.title;
+                    secState.subtitle = secEl.querySelector('.sec-cta-sub')?.innerText || secState.subtitle;
+                    secState.buttonText = secEl.querySelector('.sec-cta-btn')?.innerText || secState.buttonText;
+                } else if (secState.type === 'text') {
+                    secState.title = secEl.querySelector('.sec-text-title')?.innerText || secState.title;
+                    secState.body = secEl.querySelector('.sec-text-body')?.innerHTML || secState.body;
+                }
+            });
+        }
+
+        // --- AUTH & MODE HANDLERS ---
+        function handleEditToggle() {
+            if (!isEditMode) {
+                document.getElementById('auth-modal').classList.remove('hidden');
+            } else {
+                exitEditMode();
+            }
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('admin-pass-input').value = '';
+        }
+
+        function submitAdminAuth() {
+            const pass = document.getElementById('admin-pass-input').value;
+            if (pass === ADMIN_PASSWORD) {
+                closeAuthModal();
+                enterEditMode();
+            } else {
+                alert('⚠️ كلمة المرور غير صحيحة!');
+            }
+        }
+
+        function enterEditMode() {
+            isEditMode = true;
+            document.body.classList.add('edit-mode');
+            document.getElementById('admin-tools').classList.remove('hidden');
+            document.getElementById('edit-btn-label').innerText = 'إنهاء التعديل';
+            document.getElementById('toggle-edit-btn').className = "flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg";
+            renderCanvas();
+            showToast('🔓 تم تفعيل وضع التعديل المتقدم!');
+        }
+
+        function exitEditMode() {
+            syncDOMToState();
+            isEditMode = false;
+            document.body.classList.remove('edit-mode');
+            document.getElementById('admin-tools').classList.add('hidden');
+            document.getElementById('edit-btn-label').innerText = 'وضع التعديل';
+            document.getElementById('toggle-edit-btn').className = "flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg";
+            renderCanvas();
+        }
+
+        // --- NAVIGATION EDITOR ---
+        function openNavEditor() {
+            const list = document.getElementById('nav-items-editor-list');
+            list.innerHTML = siteState.navItems.map((item, i) => `
+                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <input type="text" value="${item.title}" id="nav-title-${i}" class="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-bold">
+                    <input type="text" value="${item.link}" id="nav-link-${i}" class="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-mono dir-ltr">
+                    <button onclick="removeNavItem(${i})" class="text-rose-500 hover:text-rose-700 p-2"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            `).join('');
+            document.getElementById('nav-modal').classList.remove('hidden');
+        }
+
+        function closeNavModal() {
+            document.getElementById('nav-modal').classList.add('hidden');
+        }
+
+        function addNewNavItem() {
+            siteState.navItems.push({ id: Date.now().toString(), title: 'عنصر جديد', link: '#section' });
+            openNavEditor();
+        }
+
+        function removeNavItem(index) {
+            siteState.navItems.splice(index, 1);
+            openNavEditor();
+        }
+
+        function applyNavChanges() {
+            siteState.navItems.forEach((item, i) => {
+                const t = document.getElementById(`nav-title-${i}`);
+                const l = document.getElementById(`nav-link-${i}`);
+                if (t && l) {
+                    item.title = t.value;
+                    item.link = l.value;
+                }
+            });
+            renderHeader();
+            closeNavModal();
+            showToast('تم تحديث قائمة التنقل!');
+        }
+
+        // --- COLOR STUDIO ---
+        function openColorStudio() {
+            document.getElementById('color-primary').value = siteState.theme.primary;
+            document.getElementById('color-bg').value = siteState.theme.bg;
+            document.getElementById('color-text').value = siteState.theme.text;
+            document.getElementById('color-card').value = siteState.theme.card;
+            
+            document.getElementById('hex-primary').innerText = siteState.theme.primary;
+            document.getElementById('hex-bg').innerText = siteState.theme.bg;
+            document.getElementById('hex-text').innerText = siteState.theme.text;
+            document.getElementById('hex-card').innerText = siteState.theme.card;
+
+            document.getElementById('color-modal').classList.remove('hidden');
+        }
+
+        function closeColorModal() {
+            document.getElementById('color-modal').classList.add('hidden');
+        }
+
+        function previewColors() {
+            siteState.theme.primary = document.getElementById('color-primary').value;
+            siteState.theme.bg = document.getElementById('color-bg').value;
+            siteState.theme.text = document.getElementById('color-text').value;
+            siteState.theme.card = document.getElementById('color-card').value;
+
+            document.getElementById('hex-primary').innerText = siteState.theme.primary;
+            document.getElementById('hex-bg').innerText = siteState.theme.bg;
+            document.getElementById('hex-text').innerText = siteState.theme.text;
+            document.getElementById('hex-card').innerText = siteState.theme.card;
+
+            applyThemeColors();
+            renderCanvas();
+        }
+
+        function saveColorTheme() {
+            previewColors();
+            closeColorModal();
+            showToast('🎨 تم تطبيق وحفظ الألوان الجديدة!');
+        }
+
+        function resetColorsToDefault() {
+            siteState.theme = { primary: "#4f46e5", bg: "#f8fafc", text: "#0f172a", card: "#ffffff" };
+            openColorStudio();
+            applyThemeColors();
+            renderCanvas();
+        }
+
+        // --- SECTION BUILDER ---
+        function openSectionBuilder() {
+            document.getElementById('section-modal').classList.remove('hidden');
+        }
+
+        function closeSectionModal() {
+            document.getElementById('section-modal').classList.add('hidden');
+        }
+
+        function addSectionType(type) {
+            syncDOMToState();
+            const newId = 'sec-' + Date.now();
+
+            if (type === 'hero') {
+                siteState.sections.push({
+                    id: newId,
+                    type: 'hero',
+                    badge: 'قسم جديد',
+                    title: 'عنوان القسم البارز هنا',
+                    description: 'اكتب الوصف المناسب لشركتك في هذه المساحة بسهولة عند التعديل.',
+                    buttonText: 'اقرأ المزيد',
+                    buttonLink: '#',
+                    imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80'
+                });
+            } else if (type === 'features') {
+                siteState.sections.push({
+                    id: newId,
+                    type: 'features',
+                    title: 'خدماتنا المتميزة',
+                    subtitle: 'استكشف ما نقدمه لعملائنا من جودة وإتقان',
+                    cards: [
+                        { icon: 'fa-solid fa-star', title: 'خدمة احترافية', desc: 'شرح مقتضب حول الخدمة والميزة.' },
+                        { icon: 'fa-solid fa-heart', title: 'دعم مستمر', desc: 'فريق عمل متواجد لمساعدتك دائماً.' },
+                        { icon: 'fa-solid fa-gem', title: 'جودة عالية', desc: 'نضمن لك أفضل النتائج باستمرار.' }
+                    ]
+                });
+            } else if (type === 'cta') {
+                siteState.sections.push({
+                    id: newId,
+                    type: 'cta',
+                    title: 'دعوة لاتخاذ إجراء سريع',
+                    subtitle: 'قم بتحفيز زوار موقعك للتواصل معك الآن.',
+                    buttonText: 'تواصل معنا',
+                    buttonLink: '#'
+                });
+            } else if (type === 'text') {
+                siteState.sections.push({
+                    id: newId,
+                    type: 'text',
+                    title: 'عنوان المقال التفصيلي',
+                    body: 'اكتب النص الكامل هنا. يمكنك إضافة فقرات وتفاصيل شاملة عن خدماتك ومميزات عملك مع العملاء.'
+                });
+            }
+
+            closeSectionModal();
+            renderCanvas();
+            showToast('➕ تم إضافة قسم جديد للموقع!');
+        }
+
+        function deleteSection(index) {
+            if (confirm('هل أنت تأكد من رغبتك في حذف هذا القسم؟')) {
+                syncDOMToState();
+                siteState.sections.splice(index, 1);
+                renderCanvas();
+                showToast('تم حذف القسم.');
+            }
+        }
+
+        function moveSection(index, direction) {
+            syncDOMToState();
+            const target = index + direction;
+            if (target >= 0 && target < siteState.sections.length) {
+                const temp = siteState.sections[index];
+                siteState.sections[index] = siteState.sections[target];
+                siteState.sections[target] = temp;
+                renderCanvas();
+            }
+        }
+
+        // --- MEDIA EDITORS ---
+        function changeSectionImage(secId) {
+            const url = prompt('أدخل رابط الصورة الجديد (URL):');
+            if (url) {
+                const sec = siteState.sections.find(s => s.id === secId);
+                if (sec) {
+                    sec.imageUrl = url;
+                    document.getElementById(`img-${secId}`).src = url;
+                    showToast('تم حديث الصورة بنجاح!');
+                }
+            }
+        }
+
+        function changeCardIcon(secId, cardIdx) {
+            const newIcon = prompt('أدخل كود أيقونة FontAwesome (مثال: fa-solid fa-rocket):', 'fa-solid fa-rocket');
+            if (newIcon) {
+                const sec = siteState.sections.find(s => s.id === secId);
+                if (sec && sec.cards[cardIdx]) {
+                    sec.cards[cardIdx].icon = newIcon;
+                    document.getElementById(`icon-${secId}-${cardIdx}`).className = newIcon;
+                }
+            }
+        }
+
+        function editLogoText() {
+            if (!isEditMode) return;
+            const newText = prompt('أدخل اسم الشركة / الموقع الجديد:', siteState.logoText);
+            if (newText) {
+                siteState.logoText = newText;
+                document.getElementById('site-logo-text').innerText = newText;
+            }
+        }
+
+        // --- TOAST NOTIFICATIONS ---
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-6 left-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 text-sm font-bold flex items-center gap-2 transform transition-all duration-300 -translate-y-10 opacity-0';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span>${msg}</span>`;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('-translate-y-10', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('-translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
