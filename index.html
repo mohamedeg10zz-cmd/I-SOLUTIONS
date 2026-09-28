@@ -77,9 +77,26 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
-        .dark .glass-panel {
-            background: rgba(15, 23, 42, 0.85);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+
+        /* Dropdown Styling */
+        .dropdown-wrapper {
+            position: relative;
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            min-width: 200px;
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border-radius: 1rem;
+            border: 1px solid #f1f5f9;
+            padding: 0.5rem;
+            z-index: 50;
+        }
+        .dropdown-wrapper:hover .dropdown-menu {
+            display: block;
         }
 
         /* Custom Scrollbar */
@@ -101,23 +118,26 @@
 <body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-300">
 
     <!-- Floating Admin Control Bar -->
-    <div id="cms-control-dock" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-slate-900/90 text-white px-5 py-3 rounded-full shadow-2xl backdrop-blur-md border border-slate-700/50">
-        <div class="flex items-center gap-2 pl-3 border-l border-slate-700">
+    <div id="cms-control-dock" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-slate-900/90 text-white px-5 py-3 rounded-full shadow-2xl backdrop-blur-md border border-slate-700/50 max-w-[95vw] overflow-x-auto">
+        <div class="flex items-center gap-2 pl-3 border-l border-slate-700 shrink-0">
             <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" id="status-indicator"></span>
-            <span class="text-xs font-bold tracking-wider text-slate-300 uppercase" id="status-text">متصل بالسحابة</span>
+            <span class="text-xs font-bold tracking-wider text-slate-300 uppercase whitespace-nowrap" id="status-text">متصل بالسحابة</span>
         </div>
 
-        <button id="toggle-edit-btn" onclick="handleEditToggle()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg shadow-indigo-600/30">
+        <button id="toggle-edit-btn" onclick="handleEditToggle()" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg shadow-indigo-600/30 shrink-0">
             <i class="fa-solid fa-pen-to-square"></i>
             <span id="edit-btn-label">وضع التعديل</span>
         </button>
 
         <!-- Admin Control Toolbar (Visible during Edit Mode) -->
-        <div id="admin-tools" class="hidden flex items-center gap-2 border-r border-slate-700 pr-3">
+        <div id="admin-tools" class="hidden flex items-center gap-2 border-r border-slate-700 pr-3 shrink-0">
+            <button onclick="openHeaderStudio()" class="bg-slate-800 hover:bg-slate-700 text-indigo-400 hover:text-indigo-300 p-2.5 rounded-full text-sm transition" title="إعدادات اللوجو والهيدر">
+                <i class="fa-solid fa-sliders"></i>
+            </button>
             <button onclick="openColorStudio()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 p-2.5 rounded-full text-sm transition" title="تخصيص الألوان والسمات">
                 <i class="fa-solid fa-palette"></i>
             </button>
-            <button onclick="openNavEditor()" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 p-2.5 rounded-full text-sm transition" title="إدارة القوائم">
+            <button onclick="openNavEditor()" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 hover:text-cyan-300 p-2.5 rounded-full text-sm transition" title="إدارة القوائم والفرعيات">
                 <i class="fa-solid fa-bars-staggered"></i>
             </button>
             <button onclick="openSectionBuilder()" class="bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 p-2.5 rounded-full text-sm transition" title="إضافة أقسام جديدة">
@@ -125,19 +145,20 @@
             </button>
             <button onclick="saveSiteDataToFirebase()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg shadow-emerald-600/30 flex items-center gap-2">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
-                <span>حفظ التعديلات</span>
+                <span class="hidden sm:inline">حفظ التعديلات</span>
             </button>
         </div>
     </div>
 
     <!-- Dynamic Header & Navigation -->
     <header id="main-header" class="sticky top-0 z-40 glass-panel shadow-sm transition-colors duration-300">
-        <div class="container mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="container mx-auto px-6 py-4 flex items-center justify-between" id="header-container">
             
-            <!-- Brand Logo -->
-            <div class="flex items-center gap-3">
-                <div id="brand-logo-icon" class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl font-black shadow-lg shadow-indigo-500/30">
-                    <i class="fa-solid fa-cube"></i>
+            <!-- Brand Logo & Title Area -->
+            <div class="flex items-center gap-3" id="brand-logo-area">
+                <div id="brand-logo-wrapper" class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl font-black shadow-lg shadow-indigo-500/30 overflow-hidden">
+                    <i id="brand-logo-icon" class="fa-solid fa-cube"></i>
+                    <img id="brand-logo-img" src="" class="hidden w-full h-full object-cover">
                 </div>
                 <div id="site-title-container">
                     <h1 id="site-logo-text" class="text-2xl font-black tracking-tight text-slate-900 cursor-pointer" onclick="editLogoText()">ApexGlobal</h1>
@@ -149,28 +170,65 @@
                 <!-- Links rendered dynamically -->
             </nav>
 
-            <!-- Header Action Button -->
-            <div class="flex items-center gap-3">
-                <a id="header-cta-btn" href="#contact" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition shadow-md shadow-indigo-200 inline-block">
+            <!-- Header Action Button & Mobile Toggle -->
+            <div class="flex items-center gap-3" id="header-action-area">
+                <a id="header-cta-btn" href="#contact" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-md shadow-indigo-200 text-sm inline-block">
                     تواصل معنا
                 </a>
-                <button onclick="openNavEditor()" class="cms-action-btn bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-lg text-xs font-bold" title="تعديل القائمة">
-                    <i class="fa-solid fa-gear"></i>
+                <button onclick="toggleMobileNav()" class="md:hidden text-slate-700 hover:text-indigo-600 p-2 text-xl">
+                    <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
         </div>
+
+        <!-- Mobile Menu Drawer -->
+        <div id="mobile-nav" class="hidden md:hidden border-t border-slate-100 bg-white/95 backdrop-blur-lg px-6 py-4 space-y-3">
+            <div id="mobile-nav-links" class="flex flex-col gap-3"></div>
+        </div>
     </header>
 
-    <!-- Main Dynamic Dynamic Content Canvas -->
+    <!-- Main Content Canvas -->
     <main id="app-canvas" class="flex-grow">
-        <!-- Sections will be rendered here from dynamic state -->
+        <!-- Sections rendered dynamically -->
     </main>
 
+    <!-- Dynamic Contact Us Section -->
+    <section id="contact" class="py-16 lg:py-24 bg-slate-900 text-white relative">
+        <div class="container mx-auto px-6 max-w-4xl">
+            <div class="text-center mb-12">
+                <span class="text-indigo-400 text-sm font-bold tracking-widest uppercase">يسعدنا التواصل معك</span>
+                <h2 class="text-3xl lg:text-5xl font-black mt-2 mb-4">أرسل لنا استفسارك مباشرة</h2>
+                <p class="text-slate-400">سيقوم فريقنا بالرد عليك في أسرع وقت ممكن.</p>
+            </div>
+            
+            <form id="contact-form" onsubmit="handleContactSubmit(event)" class="bg-slate-800/60 p-8 rounded-3xl border border-slate-700/60 shadow-2xl space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">الاسم الكامل</label>
+                        <input type="text" id="contact-name" required placeholder="أدخل اسمك" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2">البريد الإلكتروني</label>
+                        <input type="email" id="contact-email" required placeholder="name@example.com" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-300 mb-2">رسالتك</label>
+                    <textarea id="contact-message" rows="4" required placeholder="كيف يمكننا مساعدتك؟" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition"></textarea>
+                </div>
+                <button type="submit" id="contact-submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>إرسال الرسالة</span>
+                </button>
+            </form>
+        </div>
+    </section>
+
     <!-- Footer Section -->
-    <footer id="main-footer" class="bg-slate-900 text-white py-12 border-t border-slate-800 transition-colors duration-300">
+    <footer id="main-footer" class="bg-slate-950 text-white py-12 border-t border-slate-800 transition-colors duration-300">
         <div class="container mx-auto px-6 text-center">
-            <div id="footer-logo" class="text-2xl font-black text-indigo-400 mb-4">ApexGlobal</div>
-            <p id="footer-copyright" class="text-slate-400 text-sm">جميع الحقوق محفوظة © 2026 - جميع الأفكار قابلة للتطوير والتعديل المباشر.</p>
+            <div id="footer-logo" class="text-2xl font-black text-indigo-400 mb-4 cursor-pointer" onclick="editLogoText()">ApexGlobal</div>
+            <p id="footer-copyright" class="text-slate-400 text-sm cursor-pointer" contenteditable="false">جميع الحقوق محفوظة © 2026 - نظام إدارة المحتوى المتقدم.</p>
         </div>
     </footer>
 
@@ -181,7 +239,7 @@
                 <i class="fa-solid fa-lock"></i>
             </div>
             <h3 class="text-2xl font-black mb-2 text-slate-800">منطقة لوحة التحكم</h3>
-            <p class="text-sm text-slate-500 mb-6">أدخل كلمة المرور  للتعديل الشامل</p>
+            <p class="text-sm text-slate-500 mb-6">أدخل كلمة المرور للتعديل الشامل</p>
             <input type="password" id="admin-pass-input" placeholder="••••" class="w-full px-4 py-3.5 border border-slate-200 rounded-2xl mb-4 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
             <div class="flex gap-3">
                 <button onclick="submitAdminAuth()" class="flex-1 bg-indigo-600 text-white py-3.5 rounded-2xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-100">تأكيد الدخول</button>
@@ -190,28 +248,88 @@
         </div>
     </div>
 
-    <!-- Navigation Manager Modal -->
-    <div id="nav-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <!-- Header & Logo Control Modal -->
+    <div id="header-studio-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-indigo-600"></i>
+                    <span>إعدادات اللوجو والمحاذاة</span>
+                </h3>
+                <button onclick="closeHeaderStudio()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="space-y-5 overflow-y-auto pl-1 mb-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">نوع اللوجو</label>
+                    <select id="logo-type-select" onchange="toggleLogoTypeInput()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800">
+                        <option value="icon">أيقونة (FontAwesome)</option>
+                        <option value="image">صورة (رابط URL)</option>
+                    </select>
+                </div>
+
+                <div id="logo-icon-field">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">كود الأيقونة (FontAwesome)</label>
+                    <input type="text" id="logo-icon-input" placeholder="fa-solid fa-cube" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono dir-ltr">
+                </div>
+
+                <div id="logo-img-field" class="hidden">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">رابط صورة اللوجو (Image URL)</label>
+                    <input type="text" id="logo-img-input" placeholder="https://example.com/logo.png" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono dir-ltr">
+                </div>
+
+                <!-- خيار جديد: موضع الأيقونة بالنسبة للعنوان -->
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">موضع الأيقونة بالنسبة للعنوان</label>
+                    <select id="logo-pos-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800">
+                        <option value="right">يمين العنوان (افتراضي)</option>
+                        <option value="left">شمال العنوان</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">تخطيط ومحاذاة الهيدر (Header Alignment)</label>
+                    <select id="header-align-select" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800">
+                        <option value="normal">افتراضي (اللوجو يمين | القائمة بالمنتصف | الزر يسار)</option>
+                        <option value="reverse">معكوس (اللوجو يسار | القائمة بالمنتصف | الزر يمين)</option>
+                    </select>
+                </div>
+
+                <div class="border-t border-slate-100 pt-4">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">نص زر الهيدر العلوي</label>
+                    <input type="text" id="header-btn-text-input" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm mb-3 font-bold">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">رابط زر الهيدر</label>
+                    <input type="text" id="header-btn-link-input" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono dir-ltr">
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="saveHeaderSettings()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">حفظ التغييرات</button>
+                <button onclick="closeHeaderStudio()" class="bg-slate-100 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation & Dropdown Manager Modal -->
+    <div id="nav-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-2xl shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-bars-staggered text-indigo-600"></i>
-                    <span>إدارة القائمة الرئيسية</span>
+                    <span>إدارة القائمة الرئيسية والفرعية (Dropdowns)</span>
                 </h3>
                 <button onclick="closeNavModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             
-            <div class="flex-grow overflow-y-auto space-y-3 pl-1 mb-6" id="nav-items-editor-list">
-                <!-- Navigation items loaded here -->
-            </div>
+            <div class="flex-grow overflow-y-auto space-y-4 pl-1 mb-6" id="nav-items-editor-list"></div>
 
             <button onclick="addNewNavItem()" class="w-full py-3 border-2 border-dashed border-indigo-200 hover:border-indigo-500 text-indigo-600 rounded-xl font-bold transition mb-4 flex items-center justify-center gap-2">
                 <i class="fa-solid fa-plus"></i>
-                <span>إضافة عنصر قائمة جديد</span>
+                <span>إضافة عنصر رئيسي جديد</span>
             </button>
 
             <div class="flex gap-3">
-                <button onclick="applyNavChanges()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">تطبيق التغييرات</button>
+                <button onclick="applyNavChanges()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition">تطبيق وحفظ القوائم</button>
                 <button onclick="closeNavModal()" class="bg-slate-100 text-slate-600 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition">إغلاق</button>
             </div>
         </div>
@@ -254,7 +372,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">لون خلفية الهيدر والبطاقات</label>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">لون خلفية البطاقات (Card BG)</label>
                     <div class="flex items-center gap-3">
                         <input type="color" id="color-card" onchange="previewColors()" class="w-12 h-12 rounded-xl border border-slate-200 cursor-pointer">
                         <span class="text-sm font-mono text-slate-500" id="hex-card">#ffffff</span>
@@ -294,7 +412,7 @@
                         <i class="fa-solid fa-grid-2"></i>
                     </div>
                     <h4 class="font-bold text-slate-800 mb-1">بطاقات الخدمات والمميزات</h4>
-                    <p class="text-xs text-slate-500">شبكة من 3 بطاقات مزودة بأيقونات قابلة للتعديل.</p>
+                    <p class="text-xs text-slate-500">شبكة بطاقات مزودة بأيقونات قابلة للتعديل.</p>
                 </div>
 
                 <div onclick="addSectionType('cta')" class="p-5 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl cursor-pointer transition hover:shadow-lg group bg-slate-50">
@@ -305,12 +423,28 @@
                     <p class="text-xs text-slate-500">قسم لجذب الانتباه مع خلفية ملونة وزر سريع.</p>
                 </div>
 
+                <div onclick="addSectionType('faq')" class="p-5 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl cursor-pointer transition hover:shadow-lg group bg-slate-50">
+                    <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-purple-600 group-hover:text-white transition">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 mb-1">الأسئلة الشائعة (FAQ)</h4>
+                    <p class="text-xs text-slate-500">بطاقات إجابة على التساؤلات الأكثر تكراراً.</p>
+                </div>
+
+                <div onclick="addSectionType('testimonials')" class="p-5 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl cursor-pointer transition hover:shadow-lg group bg-slate-50">
+                    <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-rose-600 group-hover:text-white transition">
+                        <i class="fa-solid fa-comments"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 mb-1">آراء العملاء (Testimonials)</h4>
+                    <p class="text-xs text-slate-500">بطاقات تقييمات العملاء وشهادات الثقة.</p>
+                </div>
+
                 <div onclick="addSectionType('text')" class="p-5 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl cursor-pointer transition hover:shadow-lg group bg-slate-50">
                     <div class="w-10 h-10 bg-cyan-100 text-cyan-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-cyan-600 group-hover:text-white transition">
                         <i class="fa-solid fa-paragraph"></i>
                     </div>
                     <h4 class="font-bold text-slate-800 mb-1">كتلة نصية احترافية</h4>
-                    <p class="text-xs text-slate-500">مساحة لكتابة مقال أو معلومات تفصيلية عن الشركة.</p>
+                    <p class="text-xs text-slate-500">مساحة لكتابة تفاصيل مقال أو معلومات كاملة.</p>
                 </div>
             </div>
         </div>
@@ -338,6 +472,14 @@
 
         let siteState = {
             logoText: "ApexGlobal",
+            logoType: "icon",
+            logoIcon: "fa-solid fa-cube",
+            logoImgUrl: "",
+            logoPosition: "right", // إضافة خاصية موضع الأيقونة (right أو left)
+            headerAlign: "normal",
+            headerCtaText: "تواصل معنا",
+            headerCtaLink: "#contact",
+            footerCopyrightText: "جميع الحقوق محفوظة © 2026 - نظام إدارة المحتوى المتقدم.",
             theme: {
                 primary: "#4f46e5",
                 bg: "#f8fafc",
@@ -345,9 +487,19 @@
                 card: "#ffffff"
             },
             navItems: [
-                { id: '1', title: 'الرئيسية', link: '#section-hero' },
-                { id: '2', title: 'المميزات', link: '#section-features' },
-                { id: '3', title: 'عن الشركة', link: '#section-about' }
+                { id: '1', title: 'الرئيسية', link: '#section-hero', isDropdown: false, subItems: [] },
+                { 
+                    id: '2', 
+                    title: 'الكاميرات والمنتجات', 
+                    link: '#', 
+                    isDropdown: true, 
+                    subItems: [
+                        { title: 'كاميرات خارجية', link: '#section-features' },
+                        { title: 'كاميرات داخلية', link: '#section-features' },
+                        { title: 'أنظمة تسجيل NVR', link: '#section-about' }
+                    ] 
+                },
+                { id: '3', title: 'عن الشركة', link: '#section-about', isDropdown: false, subItems: [] }
             ],
             sections: [
                 {
@@ -392,7 +544,7 @@
             db.collection("landing_pages").doc("advanced_cms").get()
                 .then((doc) => {
                     if (doc.exists && doc.data().siteState) {
-                        siteState = doc.data().siteState;
+                        siteState = { ...siteState, ...doc.data().siteState };
                         updateStatus('متصل بالسحابة', 'emerald');
                     } else {
                         updateStatus('وضع الافتراضي', 'emerald');
@@ -408,8 +560,6 @@
 
         function saveSiteDataToFirebase() {
             updateStatus('جاري الحفظ...', 'amber');
-            
-            // Extract latest editable texts from DOM into state before saving
             syncDOMToState();
 
             db.collection("landing_pages").doc("advanced_cms").set({
@@ -418,20 +568,20 @@
             })
             .then(() => {
                 updateStatus('تم الحفظ بالسحابة', 'emerald');
-                showToast('✨ تم حفظ جميع التعديلات بنجاح! متاحة الآن لكل الزوار.');
+                showToast('✨ تم حفظ جميع التعديلات والقوائم الفرعية بنجاح!');
             })
             .catch((err) => {
                 console.error("Firebase save error:", err);
                 updateStatus('فشل الحفظ', 'rose');
-                showToast('❌ تعذر الحفظ! يرجى التأكد من ضبط القواعد Rules في Firebase.');
+                showToast('❌ تعذر الحفظ! يرجى التأكد من إعدادات القواعد Rules في Firebase.');
             });
         }
 
         function updateStatus(text, color) {
             const ind = document.getElementById('status-indicator');
             const txt = document.getElementById('status-text');
-            txt.innerText = text;
-            ind.className = `w-3 h-3 rounded-full bg-${color}-500 ${color === 'amber' ? 'animate-ping' : 'animate-pulse'}`;
+            if (txt) txt.innerText = text;
+            if (ind) ind.className = `w-3 h-3 rounded-full bg-${color}-500 ${color === 'amber' ? 'animate-ping' : 'animate-pulse'}`;
         }
 
         // --- RENDER FUNCTIONS ---
@@ -446,19 +596,117 @@
             root.style.setProperty('--bg-color', siteState.theme.bg || '#f8fafc');
             root.style.setProperty('--text-color', siteState.theme.text || '#0f172a');
             
-            // Apply logo text
-            document.getElementById('site-logo-text').innerText = siteState.logoText;
+            const logoTextEl = document.getElementById('site-logo-text');
+            if (logoTextEl) logoTextEl.innerText = siteState.logoText || "ApexGlobal";
+
+            const footerLogoEl = document.getElementById('footer-logo');
+            if (footerLogoEl) footerLogoEl.innerText = siteState.logoText || "ApexGlobal";
+
+            const footerCopyEl = document.getElementById('footer-copyright');
+            if (footerCopyEl) {
+                footerCopyEl.innerText = siteState.footerCopyrightText || "جميع الحقوق محفوظة © 2026 - نظام إدارة المحتوى المتقدم.";
+                footerCopyEl.contentEditable = isEditMode;
+            }
         }
 
         function renderHeader() {
             const container = document.getElementById('nav-links-container');
-            container.innerHTML = siteState.navItems.map(item => `
-                <a href="${item.link}" class="font-medium hover:text-indigo-600 transition" style="color: ${siteState.theme.text}">${item.title}</a>
-            `).join('');
+            const mobileContainer = document.getElementById('mobile-nav-links');
+            const headerContainer = document.getElementById('header-container');
+
+            if (headerContainer) {
+                headerContainer.className = (siteState.headerAlign === 'reverse') 
+                    ? "container mx-auto px-6 py-4 flex flex-row-reverse items-center justify-between"
+                    : "container mx-auto px-6 py-4 flex items-center justify-between";
+            }
+
+            // تحديث الاتجاه وموقع الأيقونة بالنسبة للعنوان (يمين أو شمال)
+            const brandLogoArea = document.getElementById('brand-logo-area');
+            if (brandLogoArea) {
+                if (siteState.logoPosition === 'left') {
+                    brandLogoArea.className = "flex flex-row-reverse items-center gap-3";
+                } else {
+                    brandLogoArea.className = "flex items-center gap-3";
+                }
+            }
+
+            const logoIcon = document.getElementById('brand-logo-icon');
+            const logoImg = document.getElementById('brand-logo-img');
+
+            if (siteState.logoType === 'image' && siteState.logoImgUrl) {
+                if (logoIcon) logoIcon.classList.add('hidden');
+                if (logoImg) {
+                    logoImg.src = siteState.logoImgUrl;
+                    logoImg.classList.remove('hidden');
+                }
+            } else {
+                if (logoImg) logoImg.classList.add('hidden');
+                if (logoIcon) {
+                    logoIcon.className = siteState.logoIcon || "fa-solid fa-cube";
+                    logoIcon.classList.remove('hidden');
+                }
+            }
+
+            const ctaBtn = document.getElementById('header-cta-btn');
+            if (ctaBtn) {
+                ctaBtn.innerText = siteState.headerCtaText || "تواصل معنا";
+                ctaBtn.href = siteState.headerCtaLink || "#contact";
+            }
+            
+            // Render Dynamic Nav with Dropdown Support
+            let desktopHtml = '';
+            let mobileHtml = '';
+
+            siteState.navItems.forEach(item => {
+                if (item.isDropdown && item.subItems && item.subItems.length > 0) {
+                    // Desktop Dropdown
+                    desktopHtml += `
+                        <div class="dropdown-wrapper py-2">
+                            <button class="font-bold flex items-center gap-2 hover:text-indigo-600 transition" style="color: ${siteState.theme.text}">
+                                <span>${item.title}</span>
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </button>
+                            <div class="dropdown-menu">
+                                ${item.subItems.map(sub => `
+                                    <a href="${sub.link}" class="block px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition">${sub.title}</a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+
+                    // Mobile Accordion View
+                    mobileHtml += `
+                        <div class="border-b border-slate-100 pb-2">
+                            <span class="font-bold text-indigo-600 block mb-2 text-sm">${item.title}</span>
+                            <div class="pr-3 space-y-2 border-r-2 border-indigo-100">
+                                ${item.subItems.map(sub => `
+                                    <a href="${sub.link}" class="block text-sm font-semibold text-slate-600 hover:text-indigo-600">${sub.title}</a>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    desktopHtml += `
+                        <a href="${item.link}" class="font-bold hover:text-indigo-600 transition" style="color: ${siteState.theme.text}">${item.title}</a>
+                    `;
+                    mobileHtml += `
+                        <a href="${item.link}" class="font-bold hover:text-indigo-600 transition py-1 block" style="color: ${siteState.theme.text}">${item.title}</a>
+                    `;
+                }
+            });
+
+            if (container) container.innerHTML = desktopHtml;
+            if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
+        }
+
+        function toggleMobileNav() {
+            const mNav = document.getElementById('mobile-nav');
+            if (mNav) mNav.classList.toggle('hidden');
         }
 
         function renderCanvas() {
             const canvas = document.getElementById('app-canvas');
+            if (!canvas) return;
             canvas.innerHTML = '';
 
             siteState.sections.forEach((sec, index) => {
@@ -467,7 +715,6 @@
                 secEl.className = "relative py-16 lg:py-24 border-b border-slate-200/50 transition-all";
                 secEl.style.backgroundColor = (index % 2 === 1) ? 'rgba(255,255,255,0.4)' : 'transparent';
 
-                // Section Controls Toolbar for Edit Mode
                 const controlsHtml = `
                     <div class="cms-action-btn absolute top-4 left-4 z-20 flex items-center gap-2 bg-slate-900 text-white p-1.5 rounded-xl shadow-lg border border-slate-700">
                         <button onclick="moveSection(${index}, -1)" class="w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center text-xs" title="تحريك لأعلى"><i class="fa-solid fa-arrow-up"></i></button>
@@ -484,7 +731,7 @@
                                 <h2 class="sec-hero-title text-4xl lg:text-6xl font-black mb-6 leading-tight" contenteditable="${isEditMode}">${sec.title}</h2>
                                 <p class="sec-hero-desc text-lg text-slate-600 mb-8 leading-relaxed" contenteditable="${isEditMode}">${sec.description}</p>
                                 <div class="flex items-center gap-4 justify-center lg:justify-start">
-                                    <a href="${sec.buttonLink}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 transition inline-block">
+                                    <a href="${sec.buttonLink || '#'}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold shadow-xl shadow-indigo-100 transition inline-block">
                                         <span class="sec-hero-btn" contenteditable="${isEditMode}">${sec.buttonText}</span>
                                     </a>
                                 </div>
@@ -530,9 +777,46 @@
                             <div class="p-12 rounded-3xl bg-gradient-to-r from-indigo-900 to-slate-900 text-white text-center shadow-2xl relative overflow-hidden">
                                 <h3 class="sec-cta-title text-3xl lg:text-4xl font-black mb-4 relative z-10" contenteditable="${isEditMode}">${sec.title}</h3>
                                 <p class="sec-cta-sub text-indigo-200 mb-8 max-w-2xl mx-auto text-lg relative z-10" contenteditable="${isEditMode}">${sec.subtitle}</p>
-                                <a href="${sec.buttonLink}" class="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-4 rounded-2xl font-bold shadow-lg transition inline-block relative z-10">
+                                <a href="${sec.buttonLink || '#'}" class="bg-indigo-500 hover:bg-indigo-400 text-white px-8 py-4 rounded-2xl font-bold shadow-lg transition inline-block relative z-10">
                                     <span class="sec-cta-btn" contenteditable="${isEditMode}">${sec.buttonText}</span>
                                 </a>
+                            </div>
+                        </div>
+                    `;
+                } else if (sec.type === 'faq') {
+                    const faqItemsHtml = (sec.items || []).map((item) => `
+                        <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm text-right" style="background-color: ${siteState.theme.card}">
+                            <h4 class="faq-q text-lg font-bold text-slate-800 mb-2" contenteditable="${isEditMode}">${item.q}</h4>
+                            <p class="faq-a text-slate-600 text-sm leading-relaxed" contenteditable="${isEditMode}">${item.a}</p>
+                        </div>
+                    `).join('');
+
+                    secEl.innerHTML = controlsHtml + `
+                        <div class="container mx-auto px-6 max-w-4xl text-center">
+                            <h3 class="sec-faq-title text-3xl font-black mb-4" contenteditable="${isEditMode}">${sec.title}</h3>
+                            <p class="sec-faq-sub text-slate-500 mb-12" contenteditable="${isEditMode}">${sec.subtitle}</p>
+                            <div class="space-y-4">
+                                ${faqItemsHtml}
+                            </div>
+                        </div>
+                    `;
+                } else if (sec.type === 'testimonials') {
+                    const tHtml = (sec.items || []).map((t) => `
+                        <div class="p-6 rounded-2xl border border-slate-200/80 shadow-sm text-right flex flex-col justify-between" style="background-color: ${siteState.theme.card}">
+                            <p class="t-comment text-slate-600 text-sm italic mb-6 leading-relaxed" contenteditable="${isEditMode}">"${t.comment}"</p>
+                            <div>
+                                <h5 class="t-name font-bold text-slate-800" contenteditable="${isEditMode}">${t.name}</h5>
+                                <span class="t-role text-xs text-indigo-600 font-semibold" contenteditable="${isEditMode}">${t.role}</span>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    secEl.innerHTML = controlsHtml + `
+                        <div class="container mx-auto px-6 text-center">
+                            <h3 class="sec-t-title text-3xl font-black mb-4" contenteditable="${isEditMode}">${sec.title}</h3>
+                            <p class="sec-t-sub text-slate-500 mb-12" contenteditable="${isEditMode}">${sec.subtitle}</p>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${tHtml}
                             </div>
                         </div>
                     `;
@@ -549,9 +833,15 @@
             });
         }
 
-        // Sync DOM Editable changes to Javascript State Variable
+        // Sync DOM Editable changes to Javascript State
         function syncDOMToState() {
+            const footerCopyEl = document.getElementById('footer-copyright');
+            if (footerCopyEl) {
+                siteState.footerCopyrightText = footerCopyEl.innerText;
+            }
+
             const canvas = document.getElementById('app-canvas');
+            if (!canvas) return;
             const sections = canvas.querySelectorAll('section');
 
             sections.forEach((secEl, index) => {
@@ -579,10 +869,65 @@
                     secState.title = secEl.querySelector('.sec-cta-title')?.innerText || secState.title;
                     secState.subtitle = secEl.querySelector('.sec-cta-sub')?.innerText || secState.subtitle;
                     secState.buttonText = secEl.querySelector('.sec-cta-btn')?.innerText || secState.buttonText;
+                } else if (secState.type === 'faq') {
+                    secState.title = secEl.querySelector('.sec-faq-title')?.innerText || secState.title;
+                    secState.subtitle = secEl.querySelector('.sec-faq-sub')?.innerText || secState.subtitle;
+                    const qEls = secEl.querySelectorAll('.faq-q');
+                    const aEls = secEl.querySelectorAll('.faq-a');
+                    qEls.forEach((qEl, i) => {
+                        if (secState.items[i]) {
+                            secState.items[i].q = qEl.innerText;
+                            secState.items[i].a = aEls[i]?.innerText || secState.items[i].a;
+                        }
+                    });
+                } else if (secState.type === 'testimonials') {
+                    secState.title = secEl.querySelector('.sec-t-title')?.innerText || secState.title;
+                    secState.subtitle = secEl.querySelector('.sec-t-sub')?.innerText || secState.subtitle;
+                    const comEls = secEl.querySelectorAll('.t-comment');
+                    const nameEls = secEl.querySelectorAll('.t-name');
+                    const roleEls = secEl.querySelectorAll('.t-role');
+                    comEls.forEach((cEl, i) => {
+                        if (secState.items[i]) {
+                            secState.items[i].comment = cEl.innerText.replace(/^"|"$/g, '');
+                            secState.items[i].name = nameEls[i]?.innerText || secState.items[i].name;
+                            secState.items[i].role = roleEls[i]?.innerText || secState.items[i].role;
+                        }
+                    });
                 } else if (secState.type === 'text') {
                     secState.title = secEl.querySelector('.sec-text-title')?.innerText || secState.title;
                     secState.body = secEl.querySelector('.sec-text-body')?.innerHTML || secState.body;
                 }
+            });
+        }
+
+        // --- CONTACT FORM HANDLER ---
+        function handleContactSubmit(e) {
+            e.preventDefault();
+            const btn = document.getElementById('contact-submit-btn');
+            const name = document.getElementById('contact-name').value;
+            const email = document.getElementById('contact-email').value;
+            const message = document.getElementById('contact-message').value;
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>جاري الإرسال...</span>`;
+
+            db.collection("messages").add({
+                name,
+                email,
+                message,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+            .then(() => {
+                showToast('📩 تم إرسال رسالتك بنجاح وسنتواصل معك قريباً!');
+                document.getElementById('contact-form').reset();
+            })
+            .catch((err) => {
+                console.error("Message send error:", err);
+                showToast('❌ تعذر إرسال الرسالة، يرجى المحاولة لاحقاً.');
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>إرسال الرسالة</span>`;
             });
         }
 
@@ -615,8 +960,8 @@
             document.body.classList.add('edit-mode');
             document.getElementById('admin-tools').classList.remove('hidden');
             document.getElementById('edit-btn-label').innerText = 'إنهاء التعديل';
-            document.getElementById('toggle-edit-btn').className = "flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg";
-            renderCanvas();
+            document.getElementById('toggle-edit-btn').className = "flex items-center gap-2 bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg shrink-0";
+            renderSite();
             showToast('🔓 تم تفعيل وضع التعديل المتقدم!');
         }
 
@@ -626,20 +971,56 @@
             document.body.classList.remove('edit-mode');
             document.getElementById('admin-tools').classList.add('hidden');
             document.getElementById('edit-btn-label').innerText = 'وضع التعديل';
-            document.getElementById('toggle-edit-btn').className = "flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg";
-            renderCanvas();
+            document.getElementById('toggle-edit-btn').className = "flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-full text-sm font-bold transition shadow-lg shrink-0";
+            renderSite();
         }
 
-        // --- NAVIGATION EDITOR ---
+        // --- HEADER & LOGO STUDIO ---
+        function openHeaderStudio() {
+            document.getElementById('logo-type-select').value = siteState.logoType || 'icon';
+            document.getElementById('logo-icon-input').value = siteState.logoIcon || 'fa-solid fa-cube';
+            document.getElementById('logo-img-input').value = siteState.logoImgUrl || '';
+            document.getElementById('logo-pos-select').value = siteState.logoPosition || 'right';
+            document.getElementById('header-align-select').value = siteState.headerAlign || 'normal';
+            document.getElementById('header-btn-text-input').value = siteState.headerCtaText || 'تواصل معنا';
+            document.getElementById('header-btn-link-input').value = siteState.headerCtaLink || '#contact';
+
+            toggleLogoTypeInput();
+            document.getElementById('header-studio-modal').classList.remove('hidden');
+        }
+
+        function closeHeaderStudio() {
+            document.getElementById('header-studio-modal').classList.add('hidden');
+        }
+
+        function toggleLogoTypeInput() {
+            const type = document.getElementById('logo-type-select').value;
+            if (type === 'image') {
+                document.getElementById('logo-img-field').classList.remove('hidden');
+                document.getElementById('logo-icon-field').classList.add('hidden');
+            } else {
+                document.getElementById('logo-img-field').classList.add('hidden');
+                document.getElementById('logo-icon-field').classList.remove('hidden');
+            }
+        }
+
+        function saveHeaderSettings() {
+            siteState.logoType = document.getElementById('logo-type-select').value;
+            siteState.logoIcon = document.getElementById('logo-icon-input').value;
+            siteState.logoImgUrl = document.getElementById('logo-img-input').value;
+            siteState.logoPosition = document.getElementById('logo-pos-select').value;
+            siteState.headerAlign = document.getElementById('header-align-select').value;
+            siteState.headerCtaText = document.getElementById('header-btn-text-input').value;
+            siteState.headerCtaLink = document.getElementById('header-btn-link-input').value;
+
+            renderHeader();
+            closeHeaderStudio();
+            showToast('⚙️ تم حفظ إعدادات الهيدر واللوجو!');
+        }
+
+        // --- NAVIGATION & DROPDOWN EDITOR ---
         function openNavEditor() {
-            const list = document.getElementById('nav-items-editor-list');
-            list.innerHTML = siteState.navItems.map((item, i) => `
-                <div class="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <input type="text" value="${item.title}" id="nav-title-${i}" class="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-bold">
-                    <input type="text" value="${item.link}" id="nav-link-${i}" class="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-mono dir-ltr">
-                    <button onclick="removeNavItem(${i})" class="text-rose-500 hover:text-rose-700 p-2"><i class="fa-solid fa-trash"></i></button>
-                </div>
-            `).join('');
+            renderNavEditorItems();
             document.getElementById('nav-modal').classList.remove('hidden');
         }
 
@@ -647,28 +1028,111 @@
             document.getElementById('nav-modal').classList.add('hidden');
         }
 
+        function renderNavEditorItems() {
+            const list = document.getElementById('nav-items-editor-list');
+            list.innerHTML = siteState.navItems.map((item, i) => `
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">اسم العنصر الرئيسي</label>
+                            <input type="text" value="${item.title}" id="nav-title-${i}" class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-sm font-bold">
+                        </div>
+                        <div class="w-1/3">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">نوع القائمة</label>
+                            <select id="nav-type-${i}" onchange="toggleNavDropdownType(${i})" class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-sm font-bold bg-white">
+                                <option value="link" ${!item.isDropdown ? 'selected' : ''}>رابط عادي</option>
+                                <option value="dropdown" ${item.isDropdown ? 'selected' : ''}>قائمة منسدلة (Dropdown)</option>
+                            </select>
+                        </div>
+                        <div class="pt-5">
+                            <button onclick="removeNavItem(${i})" class="text-rose-500 hover:text-rose-700 p-2"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Single Link Input -->
+                    <div id="nav-single-link-area-${i}" class="${item.isDropdown ? 'hidden' : ''}">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">الرابط المباشر</label>
+                        <input type="text" value="${item.link || '#'}" id="nav-link-${i}" class="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-sm font-mono dir-ltr">
+                    </div>
+
+                    <!-- Dropdown Sub-Items Editor Area -->
+                    <div id="nav-dropdown-area-${i}" class="${item.isDropdown ? '' : 'hidden'} bg-white p-3 rounded-xl border border-indigo-100 space-y-2">
+                        <span class="block text-xs font-bold text-indigo-600 mb-1">العناصر الفرعية المنسدلة:</span>
+                        <div id="sub-items-container-${i}" class="space-y-2">
+                            ${(item.subItems || []).map((sub, subIdx) => `
+                                <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                    <input type="text" value="${sub.title}" id="sub-title-${i}-${subIdx}" placeholder="اسم القسم الفرعي (مثل: كاميرات خارجية)" class="flex-1 px-2.5 py-1 text-xs border border-slate-200 rounded-lg font-bold">
+                                    <input type="text" value="${sub.link}" id="sub-link-${i}-${subIdx}" placeholder="الرابط" class="flex-1 px-2.5 py-1 text-xs border border-slate-200 rounded-lg font-mono dir-ltr">
+                                    <button onclick="removeSubItem(${i},${subIdx})" class="text-rose-400 hover:text-rose-600 p-1 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button onclick="addNewSubItem(${i})" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 pt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-plus text-[10px]"></i> إضافة عنصر فرعي جديد
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleNavDropdownType(index) {
+            const selectVal = document.getElementById(`nav-type-${index}`).value;
+            siteState.navItems[index].isDropdown = (selectVal === 'dropdown');
+            renderNavEditorItems();
+        }
+
         function addNewNavItem() {
-            siteState.navItems.push({ id: Date.now().toString(), title: 'عنصر جديد', link: '#section' });
-            openNavEditor();
+            siteState.navItems.push({ id: Date.now().toString(), title: 'عنصر جديد', link: '#', isDropdown: false, subItems: [] });
+            renderNavEditorItems();
         }
 
         function removeNavItem(index) {
             siteState.navItems.splice(index, 1);
-            openNavEditor();
+            renderNavEditorItems();
+        }
+
+        function addNewSubItem(itemIndex) {
+            if (!siteState.navItems[itemIndex].subItems) {
+                siteState.navItems[itemIndex].subItems = [];
+            }
+            siteState.navItems[itemIndex].subItems.push({ title: 'عنصر فرعي', link: '#' });
+            renderNavEditorItems();
+        }
+
+        function removeSubItem(itemIndex, subIndex) {
+            siteState.navItems[itemIndex].subItems.splice(subIndex, 1);
+            renderNavEditorItems();
         }
 
         function applyNavChanges() {
             siteState.navItems.forEach((item, i) => {
                 const t = document.getElementById(`nav-title-${i}`);
-                const l = document.getElementById(`nav-link-${i}`);
-                if (t && l) {
+                const typeSelect = document.getElementById(`nav-type-${i}`);
+                
+                if (t && typeSelect) {
                     item.title = t.value;
-                    item.link = l.value;
+                    item.isDropdown = (typeSelect.value === 'dropdown');
+
+                    if (!item.isDropdown) {
+                        const l = document.getElementById(`nav-link-${i}`);
+                        if (l) item.link = l.value;
+                    } else {
+                        item.subItems = item.subItems || [];
+                        item.subItems.forEach((sub, subIdx) => {
+                            const st = document.getElementById(`sub-title-${i}-${subIdx}`);
+                            const sl = document.getElementById(`sub-link-${i}-${subIdx}`);
+                            if (st && sl) {
+                                sub.title = st.value;
+                                sub.link = sl.value;
+                            }
+                        });
+                    }
                 }
             });
+
             renderHeader();
             closeNavModal();
-            showToast('تم تحديث قائمة التنقل!');
+            showToast('✨ تم تحديث القوائم الرئيسية والمنسدلة بنجاح!');
         }
 
         // --- COLOR STUDIO ---
@@ -761,7 +1225,29 @@
                     title: 'دعوة لاتخاذ إجراء سريع',
                     subtitle: 'قم بتحفيز زوار موقعك للتواصل معك الآن.',
                     buttonText: 'تواصل معنا',
-                    buttonLink: '#'
+                    buttonLink: '#contact'
+                });
+            } else if (type === 'faq') {
+                siteState.sections.push({
+                    id: newId,
+                    type: 'faq',
+                    title: 'الأسئلة الشائعة',
+                    subtitle: 'إجابات على أبرز الاستفسارات المتكررة لعملائنا',
+                    items: [
+                        { q: 'كيف يمكنني البدء بالخدمة؟', a: 'يمكنك التواصل معنا مباشرة عبر زر التفاعل لربطك مع مستشارنا.' },
+                        { q: 'هل تتوفر فترة تجريبية؟', a: 'نعم، نقدم فترة تجربة مجانية لجميع الخدمات والحلول البرمجية.' }
+                    ]
+                });
+            } else if (type === 'testimonials') {
+                siteState.sections.push({
+                    id: newId,
+                    type: 'testimonials',
+                    title: 'ماذا يقول عملاؤنا؟',
+                    subtitle: 'ثقة شركائنا هي سر نجاحنا المستمر',
+                    items: [
+                        { name: 'أحمد علي', role: 'مدير تنفيذي', comment: 'تجربة ممتازة وسرعة عالية في التنفيذ والمتابعة.' },
+                        { name: 'سارة محمود', role: 'رائدة أعمال', comment: 'أفضل حل متكامل ساعدنا على التوسع بمرونة فائقة.' }
+                    ]
                 });
             } else if (type === 'text') {
                 siteState.sections.push({
@@ -797,7 +1283,7 @@
             }
         }
 
-        // --- MEDIA EDITORS ---
+        // --- MEDIA & TEXT EDITORS ---
         function changeSectionImage(secId) {
             const url = prompt('أدخل رابط الصورة الجديد (URL):');
             if (url) {
@@ -805,18 +1291,19 @@
                 if (sec) {
                     sec.imageUrl = url;
                     document.getElementById(`img-${secId}`).src = url;
-                    showToast('تم حديث الصورة بنجاح!');
+                    showToast('تم تحديث الصورة بنجاح!');
                 }
             }
         }
 
         function changeCardIcon(secId, cardIdx) {
-            const newIcon = prompt('أدخل كود أيقونة FontAwesome (مثال: fa-solid fa-rocket):', 'fa-solid fa-rocket');
+            const newIcon = prompt('أدخل كود أيقونة FontAwesome (مثال: fa-solid fa-camera):', 'fa-solid fa-camera');
             if (newIcon) {
                 const sec = siteState.sections.find(s => s.id === secId);
-                if (sec && sec.cards[cardIdx]) {
+                if (sec && sec.cards && sec.cards[cardIdx]) {
                     sec.cards[cardIdx].icon = newIcon;
-                    document.getElementById(`icon-${secId}-${cardIdx}`).className = newIcon;
+                    const iconEl = document.getElementById(`icon-${secId}-${cardIdx}`);
+                    if (iconEl) iconEl.className = newIcon;
                 }
             }
         }
@@ -826,7 +1313,7 @@
             const newText = prompt('أدخل اسم الشركة / الموقع الجديد:', siteState.logoText);
             if (newText) {
                 siteState.logoText = newText;
-                document.getElementById('site-logo-text').innerText = newText;
+                applyThemeColors();
             }
         }
 
