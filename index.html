@@ -202,16 +202,21 @@
             </div>
             
             <form id="contact-form" onsubmit="handleContactSubmit(event)" class="bg-slate-800/60 p-8 rounded-3xl border border-slate-700/60 shadow-2xl space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">الاسم الكامل</label>
-                        <input type="text" id="contact-name" required placeholder="أدخل اسمك" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2">البريد الإلكتروني</label>
-                        <input type="email" id="contact-email" required placeholder="name@example.com" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition">
-                    </div>
-                </div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+        <label class="block text-sm font-bold text-slate-300 mb-2">الاسم الكامل</label>
+        <input type="text" id="contact-name" required placeholder="أدخل اسمك" class="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+    </div>
+    <div>
+        <label class="block text-sm font-bold text-slate-300 mb-2">رقم التليفون</label>
+        <input type="tel" id="contact-phone" required placeholder="01xxxxxxxxx" class="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+    </div>
+</div>
+
+<div class="mt-4">
+    <label class="block text-sm font-bold text-slate-300 mb-2">البريد الإلكتروني (اختياري)</label>
+    <input type="email" id="contact-email" placeholder="name@example.com" class="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+</div>
                 <div>
                     <label class="block text-sm font-bold text-slate-300 mb-2">رسالتك</label>
                     <textarea id="contact-message" rows="4" required placeholder="كيف يمكننا مساعدتك؟" class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition"></textarea>
@@ -901,22 +906,24 @@
         }
 
         // --- CONTACT FORM HANDLER ---
-        function handleContactSubmit(e) {
-            e.preventDefault();
-            const btn = document.getElementById('contact-submit-btn');
-            const name = document.getElementById('contact-name').value;
-            const email = document.getElementById('contact-email').value;
-            const message = document.getElementById('contact-message').value;
+function handleContactSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('contact-submit-btn');
+    const name = document.getElementById('contact-name').value;
+    const phone = document.getElementById('contact-phone').value; // <-- سطر جديد
+    const email = document.getElementById('contact-email').value;
+    const message = document.getElementById('contact-message').value;
 
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>جاري الإرسال...</span>`;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>جاري الإرسال...</span>`;
 
-            db.collection("messages").add({
-                name,
-                email,
-                message,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            })
+    db.collection("messages").add({
+        name,
+        phone, // <-- سطر جديد
+        email,
+        message,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
             .then(() => {
                 showToast('📩 تم إرسال رسالتك بنجاح وسنتواصل معك قريباً!');
                 document.getElementById('contact-form').reset();
